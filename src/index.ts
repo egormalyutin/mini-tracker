@@ -4,7 +4,7 @@ const config = {}
 
 // TODO: sub elems
 
-for (let i = 0; i < 100; i += 2) {
+for (let i = 0; i < 10000; i += 2) {
     config[".parent-" + i] = { eventType: "click" }
     config[".elem-" + (i + 1)] = {}
 
@@ -20,6 +20,8 @@ for (let i = 0; i < 100; i += 2) {
     document.body.appendChild(cont)
 }
 
-const tracker = new Tracker("body", config)
+const tracker = new Tracker("body", config, (_, sel, entry) => {
+    console.log("Event:", sel, "was", entry.eventType + "ed")
+})
 
 tracker.mount()

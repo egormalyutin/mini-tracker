@@ -1,77 +1,85 @@
 // USES:
-// document.querySelector
+// document.getElementById
 
 import {
     Selector,
-    ConfigEntry,
+    Entry,
     UserConfig,
-    EventsConfig,
-    EventsEntries,
-    userToEventsConfig
+    InternalConfig,
+    InternalEntries,
+    userConfigToInternalConfig
 } from "./config"
 
-import { matches } from "./util"
+// TODO: unmount
 
-import { createEvent } from "./event"
+const getSelector = (
+    target: Element,
+    entries: InternalEntries
+): Selector | null => {
+    for (const sel in entries) {
+        if (target.matches(sel)) {
+            return sel
+        }
+    }
+    return null
+}
+
+export interface Handler {
+    (element: Element, selector: Selector, entry: Entry): void
+}
 
 export default class Tracker {
-    protected readonly rootSelector: Selector
-    protected readonly eventsConfig: EventsConfig
+    protected readonly rootSelector: string
+    protected readonly config: InternalConfig
 
-    protected root: Node
+    protected readonly handler: Handler
 
-    constructor(rootSelector: Selector, config: UserConfig) {
+    protected rootElement: Element
+
+    constructor(
+        rootSelector: Selector,
+        userConfig: UserConfig,
+        handler: Handler
+    ) {
         this.rootSelector = rootSelector
-        this.eventsConfig = userToEventsConfig(config)
+        this.config = userConfigToInternalConfig(userConfig)
+        this.handler = handler
 
         this.listener = this.listener.bind(this)
-
-        console.log(`Added ${this.rootSelector}:`, this.eventsConfig)
-    }
-
-    mount() {
-        this.root = document.querySelector(this.rootSelector)
-        for (const event in this.eventsConfig) {
-            this.root.addEventListener(event, this.listener, true)
-        }
     }
 
     listener(event: Event) {
-        const conf = this.eventsConfig[event.type]
+        const start = new Date()
 
-        let target: Node | undefined = event.target as Node
+        // Get event group
+        const group = this.config[event.type]
+        if (!group) return
 
-        while (target && target != this.root) {
-            if (matches(conf.testSelector, target)) {
-                const entries = this.findEntries(target, conf.entries)
-                for (const entry of entries) {
-                    this.handleEvent(target, entry)
-                }
-            }
+        // Get target element
+        const tg = event.target
+        if (!(tg instanceof Element)) return
+        const target = tg as Element
 
-            target = target.parentNode
+        // Find closest matching element
+        const closest = target.closest(group.globalSelector)
+        if (!closest) return
+
+        // Find selector for matching element
+        const selector = getSelector(closest, group.entries)
+        if (!selector) return
+
+        const end = new Date()
+        console.log("Handled in:", end.getTime() - start.getTime())
+
+        this.handler(target, selector, group.entries[selector])
+    }
+
+    mount() {
+        this.rootElement = document.querySelector(this.rootSelector)
+
+        for (const event in this.config) {
+            this.rootElement.addEventListener(event, this.listener, true)
         }
+        console.log(this.config)
     }
-
-    handleEvent(target: Node, entry: [Selector, ConfigEntry]) {
-        console.log(
-            "Event:",
-            JSON.stringify(createEvent(entry[1][0], entry[0]), null, 2)
-        )
-    }
-
-    findEntries(
-        target: Node,
-        entries: EventsEntries
-    ): [Selector, ConfigEntry][] {
-        const ret = []
-        for (const selector in entries) {
-            if (matches(selector, target)) {
-                ret.push([selector, entries[selector]])
-            }
-        }
-        return ret
-    }
-
-    unmount() {}
 }
