@@ -9,10 +9,13 @@
   "author": "",
   "license": "ISC",
   "devDependencies": {
+    "@ampproject/rollup-plugin-closure-compiler": "^0.24.0",
     "@babel/core": "^7.9.0",
     "@babel/preset-env": "^7.9.0",
+    "@wessberg/rollup-plugin-ts": "^1.2.23",
     "babel-loader": "^8.1.0",
     "prettier": "^2.0.2",
+    "rollup": "^2.3.2",
     "ts-loader": "^6.2.2",
     "typescript": "^3.8.3",
     "webpack": "^4.42.1",
